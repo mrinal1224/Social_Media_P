@@ -1,15 +1,18 @@
-import express from 'express'
-import {resgiterUser} from '../controllers/user.controllers.js'
+import express from "express";
+import {
+    registerUser,
+    loginUser,
+    logoutUser,
+    getMe
+} from "../controllers/user.controllers.js";
+import isAuthenticated from "../middleware/auth.middleware.js";
 
-const userRoutes = express.Router()
+const userRoutes = express.Router();
 
+userRoutes.post("/register", registerUser);
+userRoutes.post("/login", loginUser);
 
-// Resgiter User
+userRoutes.post("/logout", isAuthenticated, logoutUser);
+userRoutes.get("/me", isAuthenticated, getMe);
 
-userRoutes.post('/register' , resgiterUser)
-
-
-// Login User
-
-
-export default userRoutes
+export default userRoutes;
