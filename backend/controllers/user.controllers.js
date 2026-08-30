@@ -57,7 +57,11 @@ export const registerUser = async (req, res) => {
             }
         });
     } catch (err) {
-        return res.status(500).json({ message: "Internal Server Error" });
+        console.log(err);
+        res.status(500).json({
+            message: "Internal Server Error",
+            error: err.message
+        });
     }
 };
 
