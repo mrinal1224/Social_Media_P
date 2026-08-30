@@ -1,13 +1,37 @@
-import { Link } from 'react-router-dom'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axiosInstance from "../lib/axios";
 
 function SignUp() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: "", username: "", email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      await axiosInstance.post("/users/register", form);
+      navigate("/login");
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to create account. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-xl font-black text-white shadow-sm">
-            S
-          </div>
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-xl font-black text-white shadow-sm">S</div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">SST Social</h1>
           <p className="mt-2 text-sm text-slate-500">Your campus. Your people. Your space.</p>
         </div>
@@ -18,69 +42,39 @@ function SignUp() {
             <p className="mt-1 text-sm text-slate-500">Join the SST Social community.</p>
           </div>
 
-          <form className="space-y-4">
+          {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="name" className="mb-2 block text-sm font-medium text-slate-700">Name</label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="Your name"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-              />
+              <input id="name" name="name" type="text" value={form.name} onChange={handleChange} placeholder="Your name" autoComplete="name" required className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" />
             </div>
 
             <div>
               <label htmlFor="username" className="mb-2 block text-sm font-medium text-slate-700">Username</label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                placeholder="yourusername"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-              />
+              <input id="username" name="username" type="text" value={form.username} onChange={handleChange} placeholder="yourusername" autoComplete="username" required className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" />
             </div>
 
             <div>
               <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">Email</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-              />
+              <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@example.com" autoComplete="email" required className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" />
             </div>
 
             <div>
               <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="At least 6 characters"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-              />
+              <input id="password" name="password" type="password" value={form.password} onChange={handleChange} placeholder="At least 6 characters" autoComplete="new-password" required minLength={6} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100" />
             </div>
 
-            <button
-              type="button"
-              className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.99]"
-            >
-              Create Account
+            <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60">
+              {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">
-              Log in
-            </Link>
-          </p>
+          <p className="mt-6 text-center text-sm text-slate-500">Already have an account?{' '}<Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">Log in</Link></p>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default SignUp
+export default SignUp;
