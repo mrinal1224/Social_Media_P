@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axiosInstance from "../lib/axios";
 import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { setUser } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -23,9 +22,7 @@ function Login() {
     try {
       const response = await axiosInstance.post("/users/login", form);
       setUser(response.data.user);
-
-      const redirectTo = location.state?.from?.pathname || "/home";
-      navigate(redirectTo, { replace: true });
+      navigate("/home");
     } catch (err) {
       setError(err.response?.data?.message || "Unable to login. Please try again.");
     } finally {
