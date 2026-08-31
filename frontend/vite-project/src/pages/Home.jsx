@@ -1,7 +1,14 @@
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function Home() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -9,11 +16,11 @@ function Home() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900">SST Social</h1>
-            <p className="text-sm text-slate-500">Welcome back, {user.name}</p>
+            <p className="text-sm text-slate-500">Welcome back, {user?.name}</p>
           </div>
 
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
             Logout
