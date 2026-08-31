@@ -4,6 +4,7 @@ import Login from './pages/Login.jsx'
 import SignUp from './pages/SignUp.jsx'
 import Home from './pages/Home.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import PublicRoute from './components/PublicRoute.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 
 function App() {
@@ -12,8 +13,24 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/home" />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
+
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+
+          <Route
+            path="/signup"
+            element={
+              <PublicRoute>
+                <SignUp />
+              </PublicRoute>
+            }
+          />
 
           <Route
             path="/home"
