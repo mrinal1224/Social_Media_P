@@ -1,37 +1,22 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import axiosInstance from "../lib/axios";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await axiosInstance.get("/users/me");
-        setUser(response.data);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCurrentUser();
+    axiosInstance
+      .get("/users/me")
+      .then((response) => setUser(response.data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  const logout = async () => {
-    try {
-      await axiosInstance.post("/users/logout");
-    } finally {
-      setUser(null);
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
