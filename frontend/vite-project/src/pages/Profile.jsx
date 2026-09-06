@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axiosInstance from "../lib/axios";
+import { useAuth } from "../context/AuthContext";
 
 function Profile() {
   const { username } = useParams();
+  const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const isOwnProfile = currentUser?.username === profile?.username;
+  const isFollowing = currentUser?._id
+    ? profile?.followers?.some?.((id) => id.toString() === currentUser._id.toString())
+    : false;
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -27,6 +35,36 @@ function Profile() {
     fetchProfile();
   }, [username]);
 
+  const handleFollowToggle = async () => {
+    if (!profile || isOwnProfile || followLoading) return;
+
+    try {
+      setFollowLoading(true);
+
+      if (isFollowing) {
+        await axiosInstance.delete(`/users/${profile._id}/follow`);
+        setProfile((prev) => ({
+          ...prev,
+          followers: prev.followers?.filter(
+            (id) => id.toString() !== currentUser._id.toString()
+          ) || [],
+          followersCount: Math.max((prev.followersCount || 0) - 1, 0)
+        }));
+      } else {
+        await axiosInstance.post(`/users/${profile._id}/follow`);
+        setProfile((prev) => ({
+          ...prev,
+          followers: [...(prev.followers || []), currentUser._id],
+          followersCount: (prev.followersCount || 0) + 1
+        }));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to update follow status");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="mx-auto max-w-4xl px-4 py-10">
@@ -37,11 +75,11 @@ function Profile() {
     );
   }
 
-  if (error || !profile) {
+  if (error && !profile) {
     return (
       <main className="mx-auto max-w-4xl px-4 py-10">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-          <p className="font-semibold text-red-700">{error || "User not found"}</p>
+          <p className="font-semibold text-red-700">{error}</p>
           <Link to="/home" className="mt-4 inline-block text-sm font-medium text-indigo-600">
             Back to home
           </Link>
@@ -53,6 +91,12 @@ function Profile() {
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-4xl px-4 py-10">
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-3xl font-bold text-slate-500">
@@ -74,7 +118,7 @@ function Profile() {
                 {profile.bio || "No bio yet."}
               </p>
 
-              <div className="mt-5 flex gap-6 text-sm">
+              <div className="mt-5 flex flex-wrap items-center gap-6 text-sm">
                 <div>
                   <span className="font-bold text-slate-900">{profile.postsCount}</span>{" "}
                   <span className="text-slate-500">Posts</span>
@@ -87,6 +131,23 @@ function Profile() {
                   <span className="font-bold text-slate-900">{profile.followingCount}</span>{" "}
                   <span className="text-slate-500">Following</span>
                 </div>
+                {!isOwnProfile && (
+                  <button
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                    className={`rounded-xl px-5 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                      isFollowing
+                        ? "bg-slate-700 hover:bg-slate-800"
+                        : "bg-indigo-600 hover:bg-indigo-700"
+                    }`}
+                  >
+                    {followLoading
+                      ? "Updating..."
+                      : isFollowing
+                        ? "Following"
+                        : "Follow"}
+                  </button>
+                )}
               </div>
             </div>
           </div>
