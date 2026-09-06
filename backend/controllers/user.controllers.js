@@ -115,3 +115,31 @@ export const logoutUser = (req, res) => {
 export const getMe = (req, res) => {
     return res.status(200).json(req.user);
 };
+
+export const getUserProfile = async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        const user = await User.findOne({ username })
+            .select("name username bio profileImage followers followings posts")
+            .lean();
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({
+            _id: user._id,
+            name: user.name,
+            username: user.username,
+            bio: user.bio,
+            profileImage: user.profileImage,
+            followersCount: user.followers?.length ?? 0,
+            followingCount: user.followings?.length ?? 0,
+            postsCount: user.posts?.length ?? 0
+        });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};

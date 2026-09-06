@@ -33,7 +33,9 @@ const userSchema = new mongoose.Schema(
         },
 
         bio: {
-            type: String
+            type: String,
+            trim: true,
+            maxlength: 160
         },
 
         followers: [],
