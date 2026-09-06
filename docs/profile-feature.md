@@ -1,93 +1,78 @@
-# Profile Feature
+# Profile + Follow Feature
 
-This feature adds a public user profile page to SST Social. The profile is intentionally implemented inside the existing user module because a profile is a public representation of a `User`, not a separate domain entity.
+This module takes SST Social from authentication into the first real social-network interaction: users can view a public profile and follow/unfollow another user.
 
-## What was built
+## Classroom commits
 
-### Backend
+### 1. `feat: add public profile page`
 
-**Route:** `GET /users/profile/:username`
+Added `GET /users/profile/:username` and `/profile/:username`.
 
-Files:
-- `backend/models/user.model.js`
-- `backend/controllers/user.controllers.js`
-- `backend/routes/user.routes.js`
+The profile belongs to the User domain, so the implementation stays inside the existing user model, controller, and routes instead of creating a separate Profile entity.
 
-The controller finds a user by `username`, removes sensitive fields from the response, and returns only public profile information plus derived counts:
+### 2. `feat: add follow and unfollow controllers`
 
-- name
-- username
-- bio
-- profileImage
-- followersCount
-- followingCount
-- postsCount
+Added follow/unfollow business logic in the user controller.
 
-The route is public because viewing somebody's profile does not require authentication at this stage. Later, actions such as following and editing a profile will use authorization middleware.
-
-### Frontend
-
-**Route:** `/profile/:username`
-
-File:
-- `frontend/vite-project/src/pages/Profile.jsx`
-
-The page uses React Router's `useParams()` to read the username from the URL, calls the backend through the existing Axios instance, and handles loading, error, and success states.
-
-## Why this design?
-
-### 1. Keep profile APIs under `/users`
-
-A profile belongs to a user. Keeping profile operations in `user.routes.js` and `user.controllers.js` avoids creating an unnecessary `profile` entity and keeps the API model easy to understand for students.
-
-### 2. Use username in the URL
-
-`/profile/:username` produces human-readable URLs and demonstrates dynamic routes naturally. The backend can translate the username into the corresponding MongoDB document.
-
-### 3. Keep the public response small
-
-The database document contains private information such as the password. The API explicitly selects public fields instead of returning the complete user document.
-
-### 4. Counts are computed in the API response
-
-The frontend should not need to understand how followers/followings/posts are stored. The backend exposes simple `followersCount`, `followingCount`, and `postsCount` values that can later remain stable even if the database representation changes.
-
-### 5. Context is still enough
-
-The logged-in user continues to come from `AuthContext`. The profile currently being viewed is page-specific state, so Redux is intentionally not introduced here.
-
-## Request flow
+The current user comes from the authentication middleware. A follow updates both sides of the relationship:
 
 ```text
-Browser: /profile/mrinal
-        ↓
-React Router → useParams()
-        ↓
-GET /users/profile/mrinal
-        ↓
-Express userRoutes
-        ↓
-getUserProfile controller
-        ↓
-User.findOne({ username })
-        ↓
-Public profile response
-        ↓
-Profile.jsx renders UI
+A follows B
+
+A.followings -> B
+B.followers  -> A
 ```
 
-## Classroom teaching sequence
+The controller prevents self-following, rejects a duplicate follow, and verifies that the target user exists.
 
-1. Explain why profile belongs to the User domain.
-2. Design the public API response before writing code.
-3. Implement the controller.
-4. Register the route.
-5. Build the frontend profile page with static UI.
-6. Add `useParams()` and connect the API.
-7. Demonstrate loading and 404 states.
-8. Discuss why password and other private fields must never be exposed.
-9. Explain why Redux is unnecessary for page-specific server data at this point.
+MongoDB operators:
 
-## Natural next feature
+- `$addToSet` prevents duplicate ids from being inserted.
+- `$pull` removes the relationship cleanly.
 
-The next feature should be **Follow / Unfollow**. It builds directly on this profile page and introduces user-to-user relationships, authorization, `$addToSet`, `$pull`, and UI state changes.
+### 3. `feat: add follow routes`
+
+Added protected endpoints:
+
+```http
+POST   /users/:id/follow
+DELETE /users/:id/follow
+```
+
+Authentication is required because a relationship-changing action is authorization-sensitive.
+
+### 4. `feat: add follow and unfollow to profile`
+
+The Profile page reads the logged-in user from `AuthContext`, determines whether the current user already follows the displayed profile, and lets the user toggle the relationship.
+
+The UI updates the follower count after a successful API call without introducing Redux. The profile being viewed is page-specific server data, while authentication remains global context state.
+
+## API summary
+
+| Method | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| GET | `/users/profile/:username` | Public | View a user's public profile |
+| POST | `/users/:id/follow` | Required | Follow a user |
+| DELETE | `/users/:id/follow` | Required | Unfollow a user |
+
+## Why this is the next feature
+
+Profile naturally leads to relationships. It gives students a reason to understand ObjectId references, authorization, MongoDB update operators, and UI state synchronization before introducing the Post/Feed system.
+
+## Current architecture
+
+```text
+AuthContext
+   |
+   +-- logged-in user
+
+Profile page
+   |
+   +-- GET /users/profile/:username
+   |
+   +-- POST /users/:id/follow
+   |
+   +-- DELETE /users/:id/follow
+```
+
+The next major feature should be Post CRUD, followed by the feed.
