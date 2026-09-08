@@ -38,11 +38,41 @@ const userSchema = new mongoose.Schema(
             maxlength: 160
         },
 
-        followers: [],
-        followings: [],
-        posts: [],
-        stories: [],
-        reels: [],
+        website: {
+            type: String,
+            trim: true
+        },
+
+        location: {
+            type: String,
+            trim: true,
+            maxlength: 100
+        },
+
+        followers: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }],
+
+        followings: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }],
+
+        posts: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Post"
+        }],
+
+        stories: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Story"
+        }],
+
+        reels: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Reel"
+        }],
 
         profileImage: {
             type: String
