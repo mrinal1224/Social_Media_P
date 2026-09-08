@@ -1,6 +1,8 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
+import { Readable } from "stream";
 import generateToken from "../utils/generateToken.js";
+import cloudinary from "../utils/cloudinary.js";
 
 const cookieOptions = {
     httpOnly: true,
@@ -121,7 +123,7 @@ export const getUserProfile = async (req, res) => {
         const { username } = req.params;
 
         const user = await User.findOne({ username })
-            .select("name username bio profileImage followers followings posts")
+            .select("name username bio website location profileImage followers followings posts")
             .lean();
 
         if (!user) {
@@ -133,7 +135,10 @@ export const getUserProfile = async (req, res) => {
             name: user.name,
             username: user.username,
             bio: user.bio,
+            website: user.website,
+            location: user.location,
             profileImage: user.profileImage,
+            followers: user.followers || [],
             followersCount: user.followers?.length ?? 0,
             followingCount: user.followings?.length ?? 0,
             postsCount: user.posts?.length ?? 0
@@ -141,6 +146,101 @@ export const getUserProfile = async (req, res) => {
     } catch (err) {
         console.log(err);
         return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+export const updateProfile = async (req, res) => {
+    try {
+        const { name, username, bio, website, location } = req.body;
+        const updates = {};
+
+        if (name !== undefined) updates.name = name.trim();
+        if (bio !== undefined) updates.bio = bio.trim();
+        if (website !== undefined) updates.website = website.trim();
+        if (location !== undefined) updates.location = location.trim();
+
+        if (username !== undefined) {
+            const normalizedUsername = username.trim();
+
+            if (!normalizedUsername) {
+                return res.status(400).json({ message: "Username cannot be empty" });
+            }
+
+            const usernameExists = await User.findOne({
+                username: normalizedUsername,
+                _id: { $ne: req.user._id }
+            });
+
+            if (usernameExists) {
+                return res.status(409).json({ message: "Username already exists" });
+            }
+
+            updates.username = normalizedUsername;
+        }
+
+        if (updates.bio && updates.bio.length > 160) {
+            return res.status(400).json({ message: "Bio cannot exceed 160 characters" });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            { $set: updates },
+            { new: true, runValidators: true }
+        ).select("-password");
+
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            user: updatedUser
+        });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+const uploadToCloudinary = (buffer) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: "social-media/profile-images",
+                resource_type: "image"
+            },
+            (error, result) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+
+                resolve(result);
+            }
+        );
+
+        Readable.from(buffer).pipe(stream);
+    });
+};
+
+export const updateProfileImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "Profile image is required" });
+        }
+
+        const result = await uploadToCloudinary(req.file.buffer);
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            { profileImage: result.secure_url },
+            { new: true }
+        ).select("-password");
+
+        return res.status(200).json({
+            message: "Profile image updated successfully",
+            profileImage: updatedUser.profileImage,
+            user: updatedUser
+        });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: "Unable to upload profile image" });
     }
 };
 
