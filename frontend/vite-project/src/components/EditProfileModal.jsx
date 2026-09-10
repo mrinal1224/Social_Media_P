@@ -70,12 +70,7 @@ function EditProfileModal({ profile, onClose, onUpdated }) {
 
           const imageResponse = await axiosInstance.put(
             "/users/profile/image",
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-            }
+            formData
           );
 
           updatedUser = imageResponse.data.user;
@@ -87,7 +82,10 @@ function EditProfileModal({ profile, onClose, onUpdated }) {
       onUpdated(updatedUser);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to update profile");
+      console.error("Profile update failed:", err);
+      setError(
+        err.response?.data?.message || err.message || "Unable to update profile"
+      );
     } finally {
       setSaving(false);
     }
